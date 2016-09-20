@@ -1,0 +1,22 @@
+---
+# tasks file for roles/ebsmount
+- name: Format File system if needed
+  shell: >
+    if file -sL {{ item.dev }} | grep 'ext4 filesystem data'; then
+      echo "Formatted"
+    else
+      mkfs -t ext4 {{ item.dev }}
+    fi
+  changed_when: '"Formatted" not in ebsmount_format_status.stdout'
+  register: ebsmount_format_status
+  with_items: "{{ ebsmount_points }}"
+
+- name: Ensure mount point is created
+  file: path={{ item.to }} state=directory
+  with_items: "{{ ebsmount_points }}"
+
+- name: Create mount point in fstab file
+  mount: name={{ item.to }} src={{ item.dev }} fstype=ext4 opts=defaults,auto,noatime,noexec state=mounted
+  with_items: "{{ ebsmount_points }}"
+
+- debug: var=ebsmount_status
